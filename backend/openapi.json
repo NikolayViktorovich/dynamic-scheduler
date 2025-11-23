@@ -1,0 +1,3585 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Education Planner API",
+    "description": "\n    ## Динамический планировщик образовательной траектории\n    \n    API для студентов УрФУ, помогающее:\n    - 📚 Выбирать специальность и курсы\n    - 📊 Отслеживать развитие навыков\n    - 🎯 Получать персональные рекомендации\n    - 🔄 Моделировать смену специальности\n    \n    ### Основные возможности:\n    \n    - **Аутентификация**: JWT токены (access + refresh)\n    - **Специальности**: Просмотр roadmap и матрицы навыков\n    - **Курсы**: Запись, прохождение, отслеживание прогресса\n    - **Навыки**: Древовидная структура, gap-анализ\n    - **Рекомендации**: Умные подсказки по выбору курсов\n    - **What-If анализ**: Моделирование смены специальности\n    \n    ### Для начала работы:\n    1. Зарегистрируйтесь через `/api/auth/register`\n    2. Получите токен через `/api/auth/login`\n    3. Используйте токен в заголовке: `Authorization: Bearer \u003Ctoken\u003E`\n    ",
+    "contact": {
+      "name": "Education Planner Team",
+      "email": "support@edu-planner.ru"
+    },
+    "license": {
+      "name": "MIT"
+    },
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "Корневой эндпоинт для проверки работы API",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Проверка здоровья приложения",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register",
+        "description": "Регистрация нового пользователя",
+        "operationId": "register_api_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "description": "Вход в систему",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Refresh Token",
+        "description": "Обновление access токена с помощью refresh токена",
+        "operationId": "refresh_token_api_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRefresh"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get Current User Info",
+        "description": "Получение информации о текущем пользователе",
+        "operationId": "get_current_user_info_api_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Change Password",
+        "description": "Смена пароля текущего пользователя.\n\nТребует:\n- Авторизацию (Bearer token)\n- Текущий пароль для подтверждения\n- Новый пароль (минимум 6 символов)\n- Подтверждение нового пароля",
+        "operationId": "change_password_api_auth_change_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordChangeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/specializations/": {
+      "get": {
+        "tags": [
+          "specializations"
+        ],
+        "summary": "Get All Specializations",
+        "description": "Получить список всех специальностей",
+        "operationId": "get_all_specializations_api_specializations__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SpecializationResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get All Specializations Api Specializations  Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "specializations"
+        ],
+        "summary": "Create Specialization",
+        "description": "Создать новую специальность (для администраторов)",
+        "operationId": "create_specialization_api_specializations__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpecializationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecializationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/specializations/{specialization_id}": {
+      "get": {
+        "tags": [
+          "specializations"
+        ],
+        "summary": "Get Specialization",
+        "description": "Получить детальную информацию о специальности",
+        "operationId": "get_specialization_api_specializations__specialization_id__get",
+        "parameters": [
+          {
+            "name": "specialization_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Specialization Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecializationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/specializations/{specialization_id}/roadmap": {
+      "get": {
+        "tags": [
+          "specializations"
+        ],
+        "summary": "Get Specialization Roadmap",
+        "description": "Получить roadmap специальности на весь период обучения",
+        "operationId": "get_specialization_roadmap_api_specializations__specialization_id__roadmap_get",
+        "parameters": [
+          {
+            "name": "specialization_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Specialization Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoadmapResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/specializations/{specialization_id}/skills-matrix": {
+      "get": {
+        "tags": [
+          "specializations"
+        ],
+        "summary": "Get Skills Matrix",
+        "description": "Получить матрицу требуемых навыков для специальности",
+        "operationId": "get_skills_matrix_api_specializations__specialization_id__skills_matrix_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "specialization_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Specialization Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillsMatrixResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "Get All Courses",
+        "description": "Получить список курсов с фильтрами",
+        "operationId": "get_all_courses_api_courses__get",
+        "parameters": [
+          {
+            "name": "specialization_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по специальности",
+              "title": "Specialization Id"
+            },
+            "description": "Фильтр по специальности"
+          },
+          {
+            "name": "semester",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по семестру",
+              "title": "Semester"
+            },
+            "description": "Фильтр по семестру"
+          },
+          {
+            "name": "is_elective",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по типу курса",
+              "title": "Is Elective"
+            },
+            "description": "Фильтр по типу курса"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CourseResponse"
+                  },
+                  "title": "Response Get All Courses Api Courses  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/my": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "Get My Courses",
+        "description": "Получить курсы текущего студента",
+        "operationId": "get_my_courses_api_courses_my_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StudentCourseResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get My Courses Api Courses My Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/courses/{course_id}": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "Get Course Detail",
+        "description": "Получить детальную информацию о курсе",
+        "operationId": "get_course_detail_api_courses__course_id__get",
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/{course_id}/skills": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "Get Course Skills",
+        "description": "Получить навыки курса по уровням сложности",
+        "operationId": "get_course_skills_api_courses__course_id__skills_get",
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/{course_id}/enroll": {
+      "post": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "Enroll In Course",
+        "description": "Записаться на курс",
+        "operationId": "enroll_in_course_api_courses__course_id__enroll_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseEnrollRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentCourseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/{course_id}/complete": {
+      "put": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "Complete Course",
+        "description": "Завершить курс",
+        "operationId": "complete_course_api_courses__course_id__complete_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseCompleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentCourseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills/": {
+      "get": {
+        "tags": [
+          "skills"
+        ],
+        "summary": "Get All Skills",
+        "description": "Получить список всех навыков",
+        "operationId": "get_all_skills_api_skills__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SkillResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get All Skills Api Skills  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills/tree": {
+      "get": {
+        "tags": [
+          "skills"
+        ],
+        "summary": "Get Skills Tree",
+        "description": "Получить древовидную структуру всех навыков",
+        "operationId": "get_skills_tree_api_skills_tree_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SkillTreeNode"
+                  },
+                  "type": "array",
+                  "title": "Response Get Skills Tree Api Skills Tree Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills/my-skills": {
+      "get": {
+        "tags": [
+          "skills"
+        ],
+        "summary": "Get My Skills",
+        "description": "Получить текущие навыки студента",
+        "operationId": "get_my_skills_api_skills_my_skills_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StudentSkillResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get My Skills Api Skills My Skills Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/skills/gap-analysis": {
+      "get": {
+        "tags": [
+          "skills"
+        ],
+        "summary": "Get Gap Analysis",
+        "description": "Анализ дефицита навыков для выбранной специальности",
+        "operationId": "get_gap_analysis_api_skills_gap_analysis_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "specialization_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ID специальности для анализа (если не указан, используется специальность студента)",
+              "title": "Specialization Id"
+            },
+            "description": "ID специальности для анализа (если не указан, используется специальность студента)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GapAnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/me/profile": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Get My Profile",
+        "description": "Получить профиль текущего студента",
+        "operationId": "get_my_profile_api_students_me_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Update My Profile",
+        "description": "Обновить профиль студента",
+        "operationId": "update_my_profile_api_students_me_profile_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/students/me/specialization": {
+      "put": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Set Specialization",
+        "description": "Выбрать или сменить специальность",
+        "operationId": "set_specialization_api_students_me_specialization_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "specialization_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Specialization Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/me/courses": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Get My Courses",
+        "description": "Получить курсы студента: завершенные, текущие и доступные",
+        "operationId": "get_my_courses_api_students_me_courses_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get My Courses Api Students Me Courses Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/students/me/progress": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Get My Progress",
+        "description": "Получить прогресс обучения студента",
+        "operationId": "get_my_progress_api_students_me_progress_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get My Progress Api Students Me Progress Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/students/me/resume": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Get My Resume",
+        "description": "Получить резюме студента на основе изученных курсов и навыков",
+        "operationId": "get_my_resume_api_students_me_resume_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/recommendations/courses": {
+      "get": {
+        "tags": [
+          "recommendations"
+        ],
+        "summary": "Get Course Recommendations",
+        "description": "Получить рекомендации курсов.\nНа первом этапе возвращает случайные курсы, восполняющие дефицит навыков.",
+        "operationId": "get_course_recommendations_api_recommendations_courses_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "description": "Количество рекомендаций",
+              "default": 5,
+              "title": "Limit"
+            },
+            "description": "Количество рекомендаций"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recommendations/what-if": {
+      "post": {
+        "tags": [
+          "recommendations"
+        ],
+        "summary": "What If Specialization Change",
+        "description": "Моделирование смены специальности.\nПоказывает, как изменится профиль навыков при переходе на другую специальность.",
+        "operationId": "what_if_specialization_change_api_recommendations_what_if_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatIfRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatIfResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/minors/": {
+      "get": {
+        "tags": [
+          "minors"
+        ],
+        "summary": "Get All Minors",
+        "description": "Получить список всех майнеров.\n\n- **skip**: количество записей для пропуска (пагинация)\n- **limit**: максимальное количество записей\n- **include_inactive**: включать ли неактивные майнеры",
+        "operationId": "get_all_minors_api_minors__get",
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "include_inactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Inactive"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Minor"
+                  },
+                  "title": "Response Get All Minors Api Minors  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/minors/{minor_id}": {
+      "get": {
+        "tags": [
+          "minors"
+        ],
+        "summary": "Get Minor By Id",
+        "description": "Получить детальную информацию о майнере.\n\nВключает:\n- целевые навыки майнера\n- курсы, входящие в майнер\n- агрегированные теги",
+        "operationId": "get_minor_by_id_api_minors__minor_id__get",
+        "parameters": [
+          {
+            "name": "minor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Minor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MinorDetailed"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/minors/recommendations/for-me": {
+      "get": {
+        "tags": [
+          "minors"
+        ],
+        "summary": "Get Minor Recommendations",
+        "description": "Получить рекомендации майнеров для текущего студента.\n\nРекомендации основаны на:\n- дифференцированных тегах (с весами)\n- пройденных курсах студента\n- интересах и профиле студента\n\nВозвращает майнеры, отсортированные по score (релевантности).",
+        "operationId": "get_minor_recommendations_api_minors_recommendations_for_me_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "description": "Количество рекомендаций",
+              "default": 5,
+              "title": "Limit"
+            },
+            "description": "Количество рекомендаций"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MinorRecommendationsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/minors/recommendations/similar": {
+      "get": {
+        "tags": [
+          "minors"
+        ],
+        "summary": "Get Similar Minors",
+        "description": "Получить рекомендации похожих майнеров при смене текущего.\n\nИспользуется, когда студент хочет сменить майнер —\nсистема предлагает похожие направления на основе:\n- текущего выбранного майнера\n- уже пройденных курсов",
+        "operationId": "get_similar_minors_api_minors_recommendations_similar_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "current_minor_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "ID текущего майнера",
+              "title": "Current Minor Id"
+            },
+            "description": "ID текущего майнера"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10,
+              "minimum": 1,
+              "default": 3,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MinorRecommendationsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/minors/select": {
+      "post": {
+        "tags": [
+          "minors"
+        ],
+        "summary": "Select Minor",
+        "description": "Выбрать майнер для студента.\n\nЕсли у студента уже выбран другой майнер (status=selected),\nстарый майнер будет переведён в статус 'archived',\nа все полученные навыки останутся в резюме.",
+        "operationId": "select_minor_api_minors_select_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserMinorCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserMinor"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/minors/{minor_id}/complete": {
+      "post": {
+        "tags": [
+          "minors"
+        ],
+        "summary": "Complete Minor",
+        "description": "Отметить майнер как завершённый.\n\nПосле завершения майнера:\n- навыки остаются в профиле студента\n- майнер отмечается как 'completed' в резюме\n- можно выбрать новый майнер",
+        "operationId": "complete_minor_api_minors__minor_id__complete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "minor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Minor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserMinor"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/minors/my/history": {
+      "get": {
+        "tags": [
+          "minors"
+        ],
+        "summary": "Get My Minors",
+        "description": "Получить историю майнеров студента.\n\nВключает:\n- текущий выбранный (selected)\n- завершённые (completed)\n- архивные (archived)",
+        "operationId": "get_my_minors_api_minors_my_history_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserMinor"
+                  },
+                  "type": "array",
+                  "title": "Response Get My Minors Api Minors My History Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/orbit/": {
+      "get": {
+        "tags": [
+          "orbit"
+        ],
+        "summary": "Get My Orbit",
+        "description": "Получить орбиту текущего студента.\n\nОрбита показывает:\n- выбранный майнер (дополнительное образование)\n- целевые навыки майнера (что нужно освоить)\n- курсы майнера с отметкой о прохождении\n- прогресс (процент пройденных курсов)\n\n**Важно**: орбита НЕ показывает текущие уровни навыков студента явно,\nтолько цели майнера и прогресс по курсам.\n\nЕсли у студента нет выбранного майнера, возвращается 404.",
+        "operationId": "get_my_orbit_api_orbit__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrbitResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/resume/": {
+      "get": {
+        "tags": [
+          "resume"
+        ],
+        "summary": "Get My Resume",
+        "description": "Получить текущее резюме студента.\n\nРезюме включает:\n- личную информацию (имя, email, основная специальность)\n- все навыки студента из:\n  - основной специальности (core)\n  - всех майнеров, включая архивные (orbit)\n- информацию о майнерах (текущие и завершённые)\n- статистику образования (курсы, кредиты)\n- достижения\n\n**Важно**: даже если майнер был изменён (archived),\nвсе навыки из него остаются в резюме!\n\nЭто резюме можно сгенерировать в любой момент обучения\nили по окончании основной специальности как итоговое.",
+        "operationId": "get_my_resume_api_resume__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CourseCompleteRequest": {
+        "properties": {
+          "grade": {
+            "type": "integer",
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Grade"
+          }
+        },
+        "type": "object",
+        "required": [
+          "grade"
+        ],
+        "title": "CourseCompleteRequest",
+        "description": "Запрос на завершение курса"
+      },
+      "CourseDetailResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "credits": {
+            "type": "integer",
+            "maximum": 10,
+            "minimum": 1,
+            "title": "Credits",
+            "default": 3
+          },
+          "semester": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 12,
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semester"
+          },
+          "is_elective": {
+            "type": "boolean",
+            "title": "Is Elective",
+            "default": false
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "specialization_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialization Id"
+          },
+          "difficulty_levels": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difficulty Levels"
+          },
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/SkillInCourse"
+            },
+            "type": "array",
+            "title": "Skills",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id"
+        ],
+        "title": "CourseDetailResponse",
+        "description": "Детальная информация о курсе"
+      },
+      "CourseEnrollRequest": {
+        "properties": {
+          "difficulty_level": {
+            "type": "integer",
+            "maximum": 2,
+            "minimum": 1,
+            "title": "Difficulty Level",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "title": "CourseEnrollRequest",
+        "description": "Запрос на запись на курс"
+      },
+      "CourseInRoadmap": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "semester": {
+            "type": "integer",
+            "title": "Semester"
+          },
+          "is_elective": {
+            "type": "boolean",
+            "title": "Is Elective"
+          },
+          "credits": {
+            "type": "integer",
+            "title": "Credits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "semester",
+          "is_elective",
+          "credits"
+        ],
+        "title": "CourseInRoadmap",
+        "description": "Курс в roadmap"
+      },
+      "CourseResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "credits": {
+            "type": "integer",
+            "maximum": 10,
+            "minimum": 1,
+            "title": "Credits",
+            "default": 3
+          },
+          "semester": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 12,
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semester"
+          },
+          "is_elective": {
+            "type": "boolean",
+            "title": "Is Elective",
+            "default": false
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "specialization_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialization Id"
+          },
+          "difficulty_levels": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difficulty Levels"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id"
+        ],
+        "title": "CourseResponse",
+        "description": "Схема ответа с курсом"
+      },
+      "CourseStatus": {
+        "type": "string",
+        "enum": [
+          "enrolled",
+          "in_progress",
+          "completed",
+          "dropped"
+        ],
+        "title": "CourseStatus",
+        "description": "Статус прохождения курса"
+      },
+      "CourseTagSimple": {
+        "properties": {
+          "tag_name": {
+            "type": "string",
+            "title": "Tag Name"
+          },
+          "weight": {
+            "type": "number",
+            "title": "Weight"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tag_name",
+          "weight"
+        ],
+        "title": "CourseTagSimple",
+        "description": "Простая схема тега для отображения (без id и course_id)"
+      },
+      "CourseWithTags": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "credits": {
+            "type": "integer",
+            "title": "Credits"
+          },
+          "semester": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semester"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/CourseTagSimple"
+            },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "credits"
+        ],
+        "title": "CourseWithTags",
+        "description": "Курс с тегами"
+      },
+      "GapAnalysisItem": {
+        "properties": {
+          "skill_id": {
+            "type": "integer",
+            "title": "Skill Id"
+          },
+          "skill_name": {
+            "type": "string",
+            "title": "Skill Name"
+          },
+          "required_level": {
+            "type": "integer",
+            "title": "Required Level"
+          },
+          "current_level": {
+            "type": "integer",
+            "title": "Current Level"
+          },
+          "gap": {
+            "type": "integer",
+            "title": "Gap"
+          },
+          "is_satisfied": {
+            "type": "boolean",
+            "title": "Is Satisfied"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill_id",
+          "skill_name",
+          "required_level",
+          "current_level",
+          "gap",
+          "is_satisfied"
+        ],
+        "title": "GapAnalysisItem",
+        "description": "Элемент анализа дефицита навыков"
+      },
+      "GapAnalysisResponse": {
+        "properties": {
+          "specialization_id": {
+            "type": "integer",
+            "title": "Specialization Id"
+          },
+          "specialization_name": {
+            "type": "string",
+            "title": "Specialization Name"
+          },
+          "total_required_skills": {
+            "type": "integer",
+            "title": "Total Required Skills"
+          },
+          "satisfied_skills": {
+            "type": "integer",
+            "title": "Satisfied Skills"
+          },
+          "completion_percentage": {
+            "type": "number",
+            "title": "Completion Percentage"
+          },
+          "gaps": {
+            "items": {
+              "$ref": "#/components/schemas/GapAnalysisItem"
+            },
+            "type": "array",
+            "title": "Gaps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "specialization_id",
+          "specialization_name",
+          "total_required_skills",
+          "satisfied_skills",
+          "completion_percentage",
+          "gaps"
+        ],
+        "title": "GapAnalysisResponse",
+        "description": "Результат анализа дефицита навыков"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Minor": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "minor_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minor Type"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "is_active"
+        ],
+        "title": "Minor",
+        "description": "Полная схема майнера"
+      },
+      "MinorDetailed": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "minor_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minor Type"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "target_skills": {
+            "items": {
+              "$ref": "#/components/schemas/MinorSkillDetailed"
+            },
+            "type": "array",
+            "title": "Target Skills",
+            "default": []
+          },
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/CourseWithTags"
+            },
+            "type": "array",
+            "title": "Courses",
+            "default": []
+          },
+          "aggregated_tags": {
+            "type": "object",
+            "title": "Aggregated Tags",
+            "description": "Теги с суммарными весами"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "is_active"
+        ],
+        "title": "MinorDetailed",
+        "description": "Детальная информация о майнере с навыками и курсами"
+      },
+      "MinorRecommendation": {
+        "properties": {
+          "minor_id": {
+            "type": "integer",
+            "title": "Minor Id"
+          },
+          "minor_name": {
+            "type": "string",
+            "title": "Minor Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "minor_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minor Type"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "Оценка соответствия (чем выше, тем лучше)"
+          },
+          "matching_tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matching Tags",
+            "description": "Совпадающие теги"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "Причина рекомендации"
+          }
+        },
+        "type": "object",
+        "required": [
+          "minor_id",
+          "minor_name",
+          "score",
+          "reason"
+        ],
+        "title": "MinorRecommendation",
+        "description": "Рекомендация майнера"
+      },
+      "MinorRecommendationsResponse": {
+        "properties": {
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/MinorRecommendation"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recommendations",
+          "total_count"
+        ],
+        "title": "MinorRecommendationsResponse",
+        "description": "Ответ с рекомендациями майнеров"
+      },
+      "MinorSkillDetailed": {
+        "properties": {
+          "skill_id": {
+            "type": "integer",
+            "title": "Skill Id"
+          },
+          "skill_name": {
+            "type": "string",
+            "title": "Skill Name"
+          },
+          "required_level": {
+            "type": "integer",
+            "title": "Required Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill_id",
+          "skill_name",
+          "required_level"
+        ],
+        "title": "MinorSkillDetailed",
+        "description": "Детальная информация о навыке майнера с названием"
+      },
+      "OrbitCourse": {
+        "properties": {
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "course_name": {
+            "type": "string",
+            "title": "Course Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "credits": {
+            "type": "integer",
+            "title": "Credits"
+          },
+          "semester": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semester"
+          },
+          "order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order"
+          },
+          "is_required": {
+            "type": "boolean",
+            "title": "Is Required"
+          },
+          "is_completed": {
+            "type": "boolean",
+            "title": "Is Completed",
+            "description": "Пройден ли студентом этот курс"
+          },
+          "tags": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Теги курса с весами"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_id",
+          "course_name",
+          "credits",
+          "is_required",
+          "is_completed"
+        ],
+        "title": "OrbitCourse",
+        "description": "Курс в орбите майнера"
+      },
+      "OrbitResponse": {
+        "properties": {
+          "minor_id": {
+            "type": "integer",
+            "title": "Minor Id"
+          },
+          "minor_name": {
+            "type": "string",
+            "title": "Minor Name"
+          },
+          "minor_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minor Description"
+          },
+          "minor_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minor Type"
+          },
+          "target_skills": {
+            "items": {
+              "$ref": "#/components/schemas/TargetSkill"
+            },
+            "type": "array",
+            "title": "Target Skills",
+            "default": []
+          },
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/OrbitCourse"
+            },
+            "type": "array",
+            "title": "Courses",
+            "default": []
+          },
+          "total_courses": {
+            "type": "integer",
+            "title": "Total Courses",
+            "default": 0
+          },
+          "completed_courses": {
+            "type": "integer",
+            "title": "Completed Courses",
+            "default": 0
+          },
+          "progress_percentage": {
+            "type": "number",
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Progress Percentage",
+            "description": "Процент прохождения"
+          }
+        },
+        "type": "object",
+        "required": [
+          "minor_id",
+          "minor_name",
+          "progress_percentage"
+        ],
+        "title": "OrbitResponse",
+        "description": "Орбита студента (показывает цель и структуру майнера)"
+      },
+      "PasswordChange": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Current Password"
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 6,
+            "title": "New Password"
+          },
+          "confirm_password": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 6,
+            "title": "Confirm Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password",
+          "confirm_password"
+        ],
+        "title": "PasswordChange",
+        "description": "Схема для смены пароля (требует текущий пароль)"
+      },
+      "PasswordChangeResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "success"
+        ],
+        "title": "PasswordChangeResponse",
+        "description": "Схема ответа после смены пароля"
+      },
+      "RecommendationsResponse": {
+        "properties": {
+          "specialization_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialization Id"
+          },
+          "specialization_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialization Name"
+          },
+          "recommended_courses": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendedCourse"
+            },
+            "type": "array",
+            "title": "Recommended Courses"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recommended_courses"
+        ],
+        "title": "RecommendationsResponse",
+        "description": "Ответ с рекомендациями курсов"
+      },
+      "RecommendedCourse": {
+        "properties": {
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "course_name": {
+            "type": "string",
+            "title": "Course Name"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "missing_skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Skills"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_id",
+          "course_name",
+          "reason",
+          "priority",
+          "missing_skills"
+        ],
+        "title": "RecommendedCourse",
+        "description": "Рекомендованный курс"
+      },
+      "ResumeEducation": {
+        "properties": {
+          "completed_courses": {
+            "type": "integer",
+            "title": "Completed Courses"
+          },
+          "total_credits": {
+            "type": "integer",
+            "title": "Total Credits"
+          },
+          "average_grade": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Grade"
+          }
+        },
+        "type": "object",
+        "required": [
+          "completed_courses",
+          "total_credits"
+        ],
+        "title": "ResumeEducation",
+        "description": "Образование для резюме"
+      },
+      "ResumeMinor": {
+        "properties": {
+          "minor_name": {
+            "type": "string",
+            "title": "Minor Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "selected, completed, archived"
+          },
+          "skills_gained": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills Gained",
+            "description": "Навыки из этого майнера"
+          }
+        },
+        "type": "object",
+        "required": [
+          "minor_name",
+          "status"
+        ],
+        "title": "ResumeMinor",
+        "description": "Информация о майнере в резюме"
+      },
+      "ResumePersonalInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "specialization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialization"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email"
+        ],
+        "title": "ResumePersonalInfo",
+        "description": "Личная информация для резюме"
+      },
+      "ResumeResponse": {
+        "properties": {
+          "personal": {
+            "$ref": "#/components/schemas/ResumePersonalInfo"
+          },
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/ResumeSkill"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "minors": {
+            "items": {
+              "$ref": "#/components/schemas/ResumeMinor"
+            },
+            "type": "array",
+            "title": "Minors",
+            "default": []
+          },
+          "education": {
+            "$ref": "#/components/schemas/ResumeEducation"
+          },
+          "achievements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Achievements"
+          }
+        },
+        "type": "object",
+        "required": [
+          "personal",
+          "skills",
+          "education",
+          "achievements"
+        ],
+        "title": "ResumeResponse",
+        "description": "Полное резюме студента (основа + орбита)"
+      },
+      "ResumeSkill": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "level": {
+            "type": "integer",
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Level",
+            "description": "Уровень навыка (0-3)"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "Источник: core (основная спец) или orbit (майнер)"
+          },
+          "acquired_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acquired From",
+            "description": "Название майнера или спецы"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "level",
+          "source"
+        ],
+        "title": "ResumeSkill",
+        "description": "Навык в резюме с источником"
+      },
+      "RoadmapResponse": {
+        "properties": {
+          "specialization_id": {
+            "type": "integer",
+            "title": "Specialization Id"
+          },
+          "specialization_name": {
+            "type": "string",
+            "title": "Specialization Name"
+          },
+          "duration_years": {
+            "type": "integer",
+            "title": "Duration Years"
+          },
+          "semesters": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/CourseInRoadmap"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Semesters"
+          },
+          "total_credits": {
+            "type": "integer",
+            "title": "Total Credits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "specialization_id",
+          "specialization_name",
+          "duration_years",
+          "semesters",
+          "total_credits"
+        ],
+        "title": "RoadmapResponse",
+        "description": "Roadmap образовательной траектории"
+      },
+      "SkillInCourse": {
+        "properties": {
+          "skill_id": {
+            "type": "integer",
+            "title": "Skill Id"
+          },
+          "skill_name": {
+            "type": "string",
+            "title": "Skill Name"
+          },
+          "difficulty_level": {
+            "type": "integer",
+            "title": "Difficulty Level"
+          },
+          "skill_weight": {
+            "type": "integer",
+            "title": "Skill Weight"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill_id",
+          "skill_name",
+          "difficulty_level",
+          "skill_weight"
+        ],
+        "title": "SkillInCourse",
+        "description": "Навык в курсе"
+      },
+      "SkillRequirement": {
+        "properties": {
+          "skill_id": {
+            "type": "integer",
+            "title": "Skill Id"
+          },
+          "skill_name": {
+            "type": "string",
+            "title": "Skill Name"
+          },
+          "required_level": {
+            "type": "integer",
+            "title": "Required Level"
+          },
+          "current_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Level",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill_id",
+          "skill_name",
+          "required_level"
+        ],
+        "title": "SkillRequirement",
+        "description": "Требуемый навык"
+      },
+      "SkillResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Level",
+            "default": 0
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id"
+        ],
+        "title": "SkillResponse",
+        "description": "Схема ответа с навыком"
+      },
+      "SkillTreeNode": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/SkillTreeNode"
+            },
+            "type": "array",
+            "title": "Children",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "level"
+        ],
+        "title": "SkillTreeNode",
+        "description": "Узел дерева навыков"
+      },
+      "SkillsMatrixResponse": {
+        "properties": {
+          "specialization_id": {
+            "type": "integer",
+            "title": "Specialization Id"
+          },
+          "specialization_name": {
+            "type": "string",
+            "title": "Specialization Name"
+          },
+          "required_skills": {
+            "items": {
+              "$ref": "#/components/schemas/SkillRequirement"
+            },
+            "type": "array",
+            "title": "Required Skills"
+          }
+        },
+        "type": "object",
+        "required": [
+          "specialization_id",
+          "specialization_name",
+          "required_skills"
+        ],
+        "title": "SkillsMatrixResponse",
+        "description": "Матрица навыков специальности"
+      },
+      "SpecializationCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "market_demand": {
+            "type": "number",
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Market Demand",
+            "default": 0
+          },
+          "duration_years": {
+            "type": "integer",
+            "maximum": 6,
+            "minimum": 1,
+            "title": "Duration Years",
+            "default": 2
+          },
+          "required_skills": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Skills"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "SpecializationCreate",
+        "description": "Схема для создания специальности"
+      },
+      "SpecializationResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "market_demand": {
+            "type": "number",
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Market Demand",
+            "default": 0
+          },
+          "duration_years": {
+            "type": "integer",
+            "maximum": 6,
+            "minimum": 1,
+            "title": "Duration Years",
+            "default": 2
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "required_skills": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Skills"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id"
+        ],
+        "title": "SpecializationResponse",
+        "description": "Схема ответа со специальностью"
+      },
+      "StudentCourseResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "course_name": {
+            "type": "string",
+            "title": "Course Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CourseStatus"
+          },
+          "difficulty_level": {
+            "type": "integer",
+            "title": "Difficulty Level"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "enrolled_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Enrolled At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "credits": {
+            "type": "integer",
+            "title": "Credits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "course_id",
+          "course_name",
+          "status",
+          "difficulty_level",
+          "enrolled_at",
+          "credits"
+        ],
+        "title": "StudentCourseResponse",
+        "description": "Информация о курсе студента"
+      },
+      "StudentSkillResponse": {
+        "properties": {
+          "skill_id": {
+            "type": "integer",
+            "title": "Skill Id"
+          },
+          "skill_name": {
+            "type": "string",
+            "title": "Skill Name"
+          },
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "acquired_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acquired From"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill_id",
+          "skill_name",
+          "level"
+        ],
+        "title": "StudentSkillResponse",
+        "description": "Навык студента"
+      },
+      "TargetSkill": {
+        "properties": {
+          "skill_id": {
+            "type": "integer",
+            "title": "Skill Id"
+          },
+          "skill_name": {
+            "type": "string",
+            "title": "Skill Name"
+          },
+          "skill_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill Description"
+          },
+          "required_level": {
+            "type": "integer",
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Required Level",
+            "description": "Целевой уровень навыка"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill_id",
+          "skill_name",
+          "required_level"
+        ],
+        "title": "TargetSkill",
+        "description": "Целевой навык в орбите"
+      },
+      "TokenRefresh": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "TokenRefresh",
+        "description": "Схема для обновления токена"
+      },
+      "TokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "TokenResponse",
+        "description": "Схема ответа с токенами"
+      },
+      "UserCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "full_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Full Name"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 6,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "full_name",
+          "password"
+        ],
+        "title": "UserCreate",
+        "description": "Схема для создания пользователя"
+      },
+      "UserLogin": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "UserLogin",
+        "description": "Схема для входа"
+      },
+      "UserMinor": {
+        "properties": {
+          "minor_id": {
+            "type": "integer",
+            "title": "Minor Id"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "minor_id",
+          "id",
+          "user_id",
+          "status"
+        ],
+        "title": "UserMinor",
+        "description": "Полная схема выбора майнера"
+      },
+      "UserMinorCreate": {
+        "properties": {
+          "minor_id": {
+            "type": "integer",
+            "title": "Minor Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "minor_id"
+        ],
+        "title": "UserMinorCreate",
+        "description": "Схема для выбора майнера"
+      },
+      "UserResponse": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "full_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Full Name"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "specialization_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialization Id"
+          },
+          "minor_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Minor Ids"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "full_name",
+          "id",
+          "is_active",
+          "created_at"
+        ],
+        "title": "UserResponse",
+        "description": "Схема ответа с данными пользователя"
+      },
+      "UserUpdate": {
+        "properties": {
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "specialization_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialization Id"
+          }
+        },
+        "type": "object",
+        "title": "UserUpdate",
+        "description": "Схема для обновления профиля пользователя"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WhatIfRequest": {
+        "properties": {
+          "new_specialization_id": {
+            "type": "integer",
+            "title": "New Specialization Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new_specialization_id"
+        ],
+        "title": "WhatIfRequest",
+        "description": "Запрос на моделирование смены специальности"
+      },
+      "WhatIfResponse": {
+        "properties": {
+          "current_specialization_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Specialization Id"
+          },
+          "current_specialization_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Specialization Name"
+          },
+          "new_specialization_id": {
+            "type": "integer",
+            "title": "New Specialization Id"
+          },
+          "new_specialization_name": {
+            "type": "string",
+            "title": "New Specialization Name"
+          },
+          "current_completion_percentage": {
+            "type": "number",
+            "title": "Current Completion Percentage"
+          },
+          "new_completion_percentage": {
+            "type": "number",
+            "title": "New Completion Percentage"
+          },
+          "skills_comparison": {
+            "items": {
+              "$ref": "#/components/schemas/WhatIfSkillComparison"
+            },
+            "type": "array",
+            "title": "Skills Comparison"
+          },
+          "courses_to_keep": {
+            "type": "integer",
+            "title": "Courses To Keep"
+          },
+          "total_completed_courses": {
+            "type": "integer",
+            "title": "Total Completed Courses"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_specialization_id",
+          "current_specialization_name",
+          "new_specialization_id",
+          "new_specialization_name",
+          "current_completion_percentage",
+          "new_completion_percentage",
+          "skills_comparison",
+          "courses_to_keep",
+          "total_completed_courses"
+        ],
+        "title": "WhatIfResponse",
+        "description": "Результат моделирования смены специальности"
+      },
+      "WhatIfSkillComparison": {
+        "properties": {
+          "skill_id": {
+            "type": "integer",
+            "title": "Skill Id"
+          },
+          "skill_name": {
+            "type": "string",
+            "title": "Skill Name"
+          },
+          "current_level": {
+            "type": "integer",
+            "title": "Current Level"
+          },
+          "old_required_level": {
+            "type": "integer",
+            "title": "Old Required Level"
+          },
+          "new_required_level": {
+            "type": "integer",
+            "title": "New Required Level"
+          },
+          "will_satisfy": {
+            "type": "boolean",
+            "title": "Will Satisfy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill_id",
+          "skill_name",
+          "current_level",
+          "old_required_level",
+          "new_required_level",
+          "will_satisfy"
+        ],
+        "title": "WhatIfSkillComparison",
+        "description": "Сравнение навыка при смене специальности"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
