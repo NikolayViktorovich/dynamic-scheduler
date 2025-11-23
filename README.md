@@ -1,2 +1,1 @@
-# dynamic-scheduler
-Dynamic educational trajectory planner for URFU
+# frontend

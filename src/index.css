@@ -1,0 +1,106 @@
+/* index.css - только исправления размеров */
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary: #FF3B77;
+  --secondary: #7E3BF2;
+  --bg-light: #F8F9FA;
+  --bg-dark: #0A0A0A;
+  --card-light: #FFFFFF;
+  --card-dark: #111111;
+  --text-light: #1F2937;
+  --text-dark: #F3F4F6;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-light);
+  color: var(--text-light);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.boost-button {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.boost-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.boost-button-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.boost-button-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.slide-up {
+  transform: translateY(0);
+  transition: transform 0.3s ease;
+}
+
+/* Адаптивные исправления */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Исправления для модальных окон */
+.modal-backdrop {
+  backdrop-filter: blur(8px);
+}
+
+/* Улучшения для форм */
+.custom-select {
+  background-color: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+}
+
+.dark .custom-select {
+  border-color: #4b5563;
+  color: white;
+}
